@@ -1,4 +1,5 @@
-import { useState, useEffect, useContext, useRef } from 'react';
+
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext.jsx';
 import { getHistory, deleteHistoryItem } from '../../services/historyService.js';
@@ -9,53 +10,18 @@ import {
   BsTrophyFill,
   BsPlayCircleFill,
   BsChatSquareText,
-  BsArrowRight,
 } from 'react-icons/bs';
 import toast from 'react-hot-toast';
 import './index.css';
-
-/* ── animated counter ── */
-function useCountUp(target, duration = 900, active = false) {
-  const [val, setVal] = useState(0);
-  useEffect(() => {
-    if (!active) return;
-    if (target === 0) { setVal(0); return; }
-    let start = null;
-    const tick = (ts) => {
-      if (!start) start = ts;
-      const p = Math.min((ts - start) / duration, 1);
-      setVal(Math.round((1 - Math.pow(1 - p, 3)) * target));
-      if (p < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [target, active, duration]);
-  return val;
-}
-
+ 
 function HomePage() {
-  const { user }  = useContext(AuthContext);
-  const navigate  = useNavigate();
-
+  const { user }   = useContext(AuthContext);
+  const navigate   = useNavigate();
+ 
   const [recentInterviews, setRecentInterviews] = useState([]);
   const [allInterviews,    setAllInterviews]    = useState([]);
   const [loading,          setLoading]          = useState(true);
-  const [mounted,          setMounted]          = useState(false);
-  const [statsActive,      setStatsActive]      = useState(false);
-  const statsRef = useRef(null);
-
-  /* mount trigger */
-  useEffect(() => { requestAnimationFrame(() => setMounted(true)); }, []);
-
-  /* stats intersection */
-  useEffect(() => {
-    const io = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) setStatsActive(true); },
-      { threshold: 0.2 }
-    );
-    if (statsRef.current) io.observe(statsRef.current);
-    return () => io.disconnect();
-  }, []);
-
+ 
   useEffect(() => {
     const loadHistory = async () => {
       try {
@@ -70,7 +36,7 @@ function HomePage() {
     };
     loadHistory();
   }, []);
-
+ 
   const handleDelete = async (id) => {
     try {
       await deleteHistoryItem(id);
@@ -80,11 +46,11 @@ function HomePage() {
         return updated;
       });
       toast.success('Interview deleted');
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete interview');
     }
   };
-
+ 
   const handleCardClick = (interview) => {
     if (interview.status === 'completed') {
       navigate(`/feedback/${interview._id}`);
@@ -92,130 +58,105 @@ function HomePage() {
       navigate(`/interview/${interview._id}`);
     }
   };
-
+ 
   const completedCount = allInterviews.filter((i) => i.status === 'completed').length;
-  const avgScore =
-    allInterviews.length > 0
-      ? Math.round(
-          allInterviews
-            .filter((i) => i.overallScore)
-            .reduce((sum, i) => sum + i.overallScore, 0) /
-            (allInterviews.filter((i) => i.overallScore).length || 1)
-        )
-      : 0;
-
-  const cTotal     = useCountUp(allInterviews.length, 900, statsActive);
-  const cCompleted = useCountUp(completedCount,       900, statsActive);
-  const cAvg       = useCountUp(avgScore,             900, statsActive);
-
+  const scoredItems    = allInterviews.filter((i) => i.overallScore);
+  const avgScore       = scoredItems.length
+    ? Math.round(scoredItems.reduce((sum, i) => sum + i.overallScore, 0) / scoredItems.length)
+    : 0;
+ 
+  const firstName = user?.name?.split(' ')[0] ?? 'there';
+ 
   return (
-    <div className={`home-page ${mounted ? 'home-page--in' : ''}`}>
-
-      {/* ── topbar ── */}
-      <div className="home-topbar">
-        <span className="home-topbar-brand">AI Interview Coach</span>
-        <span className="home-topbar-div" />
-        <span className="home-topbar-date">
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </span>
-      </div>
-
-      {/* ── welcome ── */}
-      <div className="home-welcome">
-        <p className="home-overline">Dashboard</p>
-        <h1 className="home-welcome-heading">
-          <em className="home-heading-em">Hello,</em>
-          <span className="home-heading-name">{user?.name?.split(' ')[0]}.</span>
+    <div className="hp-page">
+ 
+      {/* Ambient orbs — same as every page */}
+      <div className="hp-orb hp-orb--amber" aria-hidden="true" />
+      <div className="hp-orb hp-orb--blue"  aria-hidden="true" />
+ 
+      {/* ── Welcome ── */}
+      <div className="hp-welcome">
+        <h1 className="hp-welcome__heading">
+          Welcome back, <em className="hp-welcome__name">{firstName}!</em>
         </h1>
-        <p className="home-welcome-subtitle">
+        <p className="hp-welcome__subtitle">
           Practice makes perfect. Start a mock interview and get AI-powered feedback.
         </p>
       </div>
-
-      {/* ── stats row ── */}
-      <div
-        ref={statsRef}
-        className={`home-stats-row ${statsActive ? 'home-stats-row--in' : ''}`}
-      >
-        <div className="home-stat-card" style={{ '--d': '0ms' }}>
-          <BsChatSquareTextFill className="home-stat-icon" />
-          <span className="home-stat-number">{cTotal}</span>
-          <span className="home-stat-label">Interviews</span>
+ 
+      {/* ── Stats row ── */}
+      <div className="hp-stats-row">
+        <div className="hp-stat-card">
+          <BsChatSquareTextFill className="hp-stat-card__icon" aria-hidden="true" />
+          <span className="hp-stat-card__number">{allInterviews.length}</span>
+          <span className="hp-stat-card__label">Interviews</span>
         </div>
-        <div className="home-stat-rule" />
-        <div className="home-stat-card" style={{ '--d': '100ms' }}>
-          <BsCheckCircleFill className="home-stat-icon" />
-          <span className="home-stat-number">{cCompleted}</span>
-          <span className="home-stat-label">Completed</span>
+        <div className="hp-stat-card">
+          <BsCheckCircleFill className="hp-stat-card__icon" aria-hidden="true" />
+          <span className="hp-stat-card__number">{completedCount}</span>
+          <span className="hp-stat-card__label">Completed</span>
         </div>
-        <div className="home-stat-rule" />
-        <div className="home-stat-card" style={{ '--d': '200ms' }}>
-          <BsTrophyFill className="home-stat-icon" />
-          <span className="home-stat-number">{cAvg}</span>
-          <span className="home-stat-label">Avg Score</span>
+        <div className="hp-stat-card">
+          <BsTrophyFill className="hp-stat-card__icon" aria-hidden="true" />
+          <span className="hp-stat-card__number">{avgScore || '—'}</span>
+          <span className="hp-stat-card__label">Avg Score</span>
         </div>
       </div>
-
-      {/* ── CTA ── */}
-      <div className="home-cta-container">
-        <button className="home-start-btn" onClick={() => navigate('/setup')}>
-          <BsPlayCircleFill className="home-start-icon" />
+ 
+      {/* ── CTA button — centred ── */}
+      <div className="hp-cta">
+        <button className="hp-cta__btn" onClick={() => navigate('/setup')}>
+          <BsPlayCircleFill className="hp-cta__icon" aria-hidden="true" />
           Start New Interview
-          <BsArrowRight className="home-start-arrow" />
-          <span className="home-start-fill" />
         </button>
       </div>
-
-      {/* ── recent interviews ── */}
-      <div className="home-recent-section">
-        <div className="home-section-header">
-          <h2 className="home-section-heading">Recent Interviews</h2>
+ 
+      {/* ── Recent interviews ── */}
+      <div className="hp-recent">
+        <div className="hp-recent__header">
+          <h2 className="hp-recent__heading">Recent Interviews</h2>
           {recentInterviews.length > 0 && (
-            <button
-              className="home-view-all-btn"
-              onClick={() => navigate('/history')}
-            >
-              View all <BsArrowRight className="home-view-arrow" />
+            <button className="hp-recent__view-all" onClick={() => navigate('/history')}>
+              View All
             </button>
           )}
         </div>
-
-        {loading ? (
-          <div className="home-loading-state">
-            <span className="home-spinner" />
-            <p className="home-loading-text">Loading interviews…</p>
+ 
+        {loading && (
+          <div className="hp-loading">
+            <span className="hp-loading__spinner" aria-hidden="true" />
+            <p className="hp-loading__text">Loading interviews…</p>
           </div>
-        ) : recentInterviews.length === 0 ? (
-          <div className="home-empty-state">
-            <BsChatSquareText className="home-empty-icon" />
-            <div className="home-empty-text-group">
-              <h3 className="home-empty-heading">No interviews yet</h3>
-              <p className="home-empty-text">Start your first mock interview to see it here.</p>
-            </div>
-            <button className="home-empty-cta-btn" onClick={() => navigate('/setup')}>
-              <BsPlayCircleFill /> Begin now
+        )}
+ 
+        {!loading && recentInterviews.length === 0 && (
+          <div className="hp-empty">
+            <BsChatSquareText className="hp-empty__icon" aria-hidden="true" />
+            <h3 className="hp-empty__heading">No interviews yet</h3>
+            <p className="hp-empty__text">Start your first mock interview to see it here.</p>
+            <button className="hp-empty__btn" onClick={() => navigate('/setup')}>
+              <BsPlayCircleFill aria-hidden="true" />
+              Start Interview
             </button>
           </div>
-        ) : (
-          <ul className="home-interviews-list">
-            {recentInterviews.map((interview, i) => (
-              <li
+        )}
+ 
+        {!loading && recentInterviews.length > 0 && (
+          <div className="hp-grid">
+            {recentInterviews.map((interview) => (
+              <InterviewCard
                 key={interview._id}
-                className="home-interview-row"
-                style={{ '--i': i }}
-              >
-                <InterviewCard
-                  interview={interview}
-                  onClick={() => handleCardClick(interview)}
-                  onDelete={handleDelete}
-                />
-              </li>
+                interview={interview}
+                onClick={() => handleCardClick(interview)}
+                onDelete={handleDelete}
+              />
             ))}
-          </ul>
+          </div>
         )}
       </div>
+ 
     </div>
   );
 }
-
+ 
 export default HomePage;

@@ -8,181 +8,199 @@ import {
   BsArrowUpRight,
   BsJournalText,
   BsArrowRepeat,
+  BsHouseDoorFill,
+  BsStarFill,
 } from 'react-icons/bs';
 import toast from 'react-hot-toast';
 import './index.css';
 
+// Maps the camelCase keys from the API to readable labels
+const CATEGORY_MAP = [
+  { key: 'communicationSkills', label: 'Communication Skills' },
+  { key: 'technicalKnowledge',  label: 'Technical Knowledge'  },
+  { key: 'problemSolving',      label: 'Problem Solving'       },
+  { key: 'codeQuality',         label: 'Code Quality'          },
+  { key: 'confidence',          label: 'Confidence'            },
+];
+
 function FeedbackPage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
+  const { id }     = useParams();
+  const navigate   = useNavigate();
 
   const [interview, setInterview] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading,   setLoading]   = useState(true);
 
   useEffect(() => {
-  const loadFeedback = async () => {
-    try {
-      const data = await getInterview(id);
-
-      if (!data.feedback) {
-        toast.error('No feedback available for this interview.');
+    const load = async () => {
+      try {
+        const data = await getInterview(id);
+        if (!data.feedback) {
+          toast.error('No feedback available for this interview.');
+          navigate('/');
+          return;
+        }
+        setInterview(data);
+      } catch {
+        toast.error('Failed to load feedback');
         navigate('/');
-        return;
+      } finally {
+        setLoading(false);
       }
+    };
+    load();
+  }, [id, navigate]);
 
-      setInterview(data);
-    } catch (error) {
-      toast.error('Failed to load feedback');
-      navigate('/');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  loadFeedback();
-}, [id, navigate]);
-
+  // ── Loading screen ──
   if (loading) {
     return (
-      <div className="feedback-loading-state">
-        <div className="spinner-border spinner-border-sm" role="status" />
-        <p className="feedback-loading-text">Loading feedback...</p>
+      <div className="fb-loading">
+        <span className="fb-loading__spinner" aria-hidden="true" />
+        <p className="fb-loading__text">Loading feedback…</p>
       </div>
     );
   }
 
-  if (!interview || !interview.feedback) return null;
+  if (!interview?.feedback) return null;
 
-  const { feedback, role, overallScore } = interview;
-  const { categoryScores, strengths, areasOfImprovement, finalAssessment } =
-    feedback;
+  const { feedback, role, overallScore, createdAt } = interview;
+  const { categoryScores, strengths, areasOfImprovement, finalAssessment } = feedback;
+
+  const formattedDate = new Date(createdAt).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month:   'long',
+    day:     'numeric',
+    year:    'numeric',
+  });
+
+  // Decide a label based on the overall score
+  const scoreLabel =
+    overallScore >= 80 ? 'Excellent'  :
+    overallScore >= 60 ? 'Good'       :
+    overallScore >= 40 ? 'Fair'       : 'Needs Work';
 
   return (
-    <div className="feedback-page">
-      <div className="feedback-container">
-        <div className="feedback-header">
-          <h1 className="feedback-heading">Interview Feedback</h1>
-          <p className="feedback-role-text">{role}</p>
-          <p className="feedback-date-text">
-            {new Date(interview.createdAt).toLocaleDateString('en-US', {
-              weekday: 'long',
-              month: 'long',
-              day: 'numeric',
-              year: 'numeric',
-            })}
-          </p>
-        </div>
+    <div className="fb-root">
+      <div className="fb-orb fb-orb--amber" aria-hidden="true" />
+      <div className="fb-orb fb-orb--blue"  aria-hidden="true" />
 
-        <div className="feedback-overall-section">
+      <div className="fb-inner">
+
+        {/* ── Page header ── */}
+        <header className="fb-header">
+          <p className="fb-header__eyebrow">Interview Complete</p>
+          <h1 className="fb-header__heading">
+            Your <em className="fb-header__accent">Feedback</em>
+          </h1>
+          <p className="fb-header__meta">
+            <span className="fb-header__role">{role}</span>
+            <span className="fb-header__sep" aria-hidden="true">·</span>
+            <span className="fb-header__date">{formattedDate}</span>
+          </p>
+        </header>
+
+        {/* ── Overall score hero ── */}
+        <section className="fb-score-hero" aria-label="Overall score">
           <div
-            className="feedback-score-circle"
-            style={{ borderColor: getScoreColor(overallScore) }}
+            className="fb-score-ring"
+            style={{ '--ring-color': getScoreColor(overallScore) }}
           >
             <span
-              className="feedback-score-number"
+              className="fb-score-ring__number"
               style={{ color: getScoreColor(overallScore) }}
             >
               {overallScore}
             </span>
-            <span className="feedback-score-label">/100</span>
+            <span className="fb-score-ring__denom">/100</span>
           </div>
-          <h2 className="feedback-overall-title">Overall Score</h2>
-        </div>
 
-        <div className="feedback-categories-section">
-          <h2 className="feedback-section-heading">Category Breakdown</h2>
-          <div className="feedback-scores-grid">
-            {categoryScores && (
-              <>
-                <ScoreCard
-                  label="Communication Skills"
-                  score={categoryScores.communicationSkills?.score || 0}
-                  comment={categoryScores.communicationSkills?.comment}
-                />
-                <ScoreCard
-                  label="Technical Knowledge"
-                  score={categoryScores.technicalKnowledge?.score || 0}
-                  comment={categoryScores.technicalKnowledge?.comment}
-                />
-                <ScoreCard
-                  label="Problem Solving"
-                  score={categoryScores.problemSolving?.score || 0}
-                  comment={categoryScores.problemSolving?.comment}
-                />
-                <ScoreCard
-                  label="Code Quality"
-                  score={categoryScores.codeQuality?.score || 0}
-                  comment={categoryScores.codeQuality?.comment}
-                />
-                <ScoreCard
-                  label="Confidence"
-                  score={categoryScores.confidence?.score || 0}
-                  comment={categoryScores.confidence?.comment}
-                />
-              </>
-            )}
+          <div className="fb-score-meta">
+            <p className="fb-score-meta__label">Overall Score</p>
+            <p
+              className="fb-score-meta__verdict"
+              style={{ color: getScoreColor(overallScore) }}
+            >
+              <BsStarFill aria-hidden="true" />
+              {scoreLabel}
+            </p>
           </div>
-        </div>
+        </section>
 
-        {strengths && strengths.length > 0 && (
-          <div className="feedback-callout feedback-callout-success">
-            <div className="feedback-callout-header">
-              <BsCheckCircleFill className="feedback-callout-icon-success" />
-              <h2 className="feedback-callout-heading">Strengths</h2>
+        {/* ── Category breakdown ── */}
+        {categoryScores && (
+          <section className="fb-section">
+            <h2 className="fb-section__heading">Category Breakdown</h2>
+            <div className="fb-categories-grid">
+              {CATEGORY_MAP.map(({ key, label }) => (
+                <ScoreCard
+                  key={key}
+                  label={label}
+                  score={categoryScores[key]?.score ?? 0}
+                  comment={categoryScores[key]?.comment}
+                />
+              ))}
             </div>
-            <ul className="feedback-callout-list">
-              {strengths.map((item, index) => (
-                <li key={index} className="feedback-callout-list-item">
+          </section>
+        )}
+
+        {/* ── Strengths ── */}
+        {strengths?.length > 0 && (
+          <section className="fb-callout fb-callout--green">
+            <div className="fb-callout__header">
+              <BsCheckCircleFill className="fb-callout__icon" aria-hidden="true" />
+              <h2 className="fb-callout__heading">Strengths</h2>
+            </div>
+            <ul className="fb-callout__list" role="list">
+              {strengths.map((item, i) => (
+                <li key={i} className="fb-callout__item">
+                  <span className="fb-callout__bullet" aria-hidden="true" />
                   {item}
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         )}
 
-        {areasOfImprovement && areasOfImprovement.length > 0 && (
-          <div className="feedback-callout feedback-callout-warning">
-            <div className="feedback-callout-header">
-              <BsArrowUpRight className="feedback-callout-icon-warning" />
-              <h2 className="feedback-callout-heading">
-                Areas for Improvement
-              </h2>
+        {/* ── Areas of improvement ── */}
+        {areasOfImprovement?.length > 0 && (
+          <section className="fb-callout fb-callout--amber">
+            <div className="fb-callout__header">
+              <BsArrowUpRight className="fb-callout__icon" aria-hidden="true" />
+              <h2 className="fb-callout__heading">Areas for Improvement</h2>
             </div>
-            <ul className="feedback-callout-list">
-              {areasOfImprovement.map((item, index) => (
-                <li key={index} className="feedback-callout-list-item">
+            <ul className="fb-callout__list" role="list">
+              {areasOfImprovement.map((item, i) => (
+                <li key={i} className="fb-callout__item">
+                  <span className="fb-callout__bullet" aria-hidden="true" />
                   {item}
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         )}
 
+        {/* ── Final assessment ── */}
         {finalAssessment && (
-          <div className="feedback-callout feedback-callout-blue">
-            <div className="feedback-callout-header">
-              <BsJournalText className="feedback-callout-icon-blue" />
-              <h2 className="feedback-callout-heading">Final Assessment</h2>
+          <section className="fb-callout fb-callout--blue">
+            <div className="fb-callout__header">
+              <BsJournalText className="fb-callout__icon" aria-hidden="true" />
+              <h2 className="fb-callout__heading">Final Assessment</h2>
             </div>
-            <p className="feedback-assessment-text">{finalAssessment}</p>
-          </div>
+            <p className="fb-assessment">{finalAssessment}</p>
+          </section>
         )}
 
-        <div className="feedback-actions-row">
-          <button
-            className="feedback-btn-primary"
-            onClick={() => navigate('/setup')}
-          >
-            <BsArrowRepeat className="feedback-btn-icon" />
+        {/* ── Action buttons ── */}
+        <div className="fb-actions">
+          <button className="fb-actions__primary" onClick={() => navigate('/setup')}>
+            <BsArrowRepeat aria-hidden="true" />
             Retake Interview
           </button>
-          <button
-            className="feedback-btn-outline"
-            onClick={() => navigate('/')}
-          >
+          <button className="fb-actions__outline" onClick={() => navigate('/')}>
+            <BsHouseDoorFill aria-hidden="true" />
             Back to Dashboard
           </button>
         </div>
+
       </div>
     </div>
   );

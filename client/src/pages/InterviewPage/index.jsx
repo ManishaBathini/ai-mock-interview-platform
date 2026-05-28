@@ -8,8 +8,8 @@ import {
   endInterview,
 } from '../../services/interviewService.js';
 import VoiceRecorder from '../../components/VoiceRecorder';
-import AudioPlayer from '../../components/AudioPlayer';
-import CodeEditor from '../../components/CodeEditor';
+import AudioPlayer   from '../../components/AudioPlayer';
+import CodeEditor    from '../../components/CodeEditor';
 import { FaUserTie } from 'react-icons/fa';
 import {
   BsRecordCircleFill,
@@ -18,186 +18,107 @@ import {
   BsCheck,
   BsCheckCircleFill,
   BsXCircleFill,
+  BsMicFill,
 } from 'react-icons/bs';
 import toast from 'react-hot-toast';
 import './index.css';
 
-const STATE_SPEAKING = 'speaking';
-const STATE_THINKING = 'thinking';
+// Interviewer state constants
+const STATE_SPEAKING  = 'speaking';
+const STATE_THINKING  = 'thinking';
 const STATE_LISTENING = 'listening';
-const STATE_FAREWELL = 'farewell';
+const STATE_FAREWELL  = 'farewell';
 
 function InterviewPage() {
-  const { id } = useParams();
+  const { id }   = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [loading, setLoading] = useState(true);
+  const [loading,    setLoading]    = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [ending, setEnding] = useState(false);
+  const [ending,     setEnding]     = useState(false);
 
   const [interviewerState, setInterviewerState] = useState(STATE_SPEAKING);
 
   const [showTextFallback, setShowTextFallback] = useState(false);
-  const [textAnswer, setTextAnswer] = useState('');
+  const [textAnswer,       setTextAnswer]       = useState('');
 
-  const [code, setCode] = useState('');
-  const [codeLanguage, setCodeLanguage] = useState('javascript');
+  const [code,           setCode]           = useState('');
+  const [codeLanguage,   setCodeLanguage]   = useState('javascript');
   const [codeEvaluation, setCodeEvaluation] = useState(null);
 
   const [currentAudio, setCurrentAudio] = useState(null);
-  const [audioKey, setAudioKey] = useState(0);
+  const [audioKey,     setAudioKey]     = useState(0);
 
   const [currentQuestionNum, setCurrentQuestionNum] = useState(1);
-  const [totalQuestions, setTotalQuestions] = useState(5);
-  const [currentQuestion, setCurrentQuestion] = useState(null);
-  const [interviewerText, setInterviewerText] = useState('');
-  const [farewellMessage, setFarewellMessage] = useState('');
+  const [totalQuestions,     setTotalQuestions]     = useState(5);
+  const [currentQuestion,    setCurrentQuestion]    = useState(null);
+  const [interviewerText,    setInterviewerText]    = useState('');
+  const [farewellMessage,    setFarewellMessage]    = useState('');
 
   useEffect(() => {
-  const loadInterview = async () => {
-    try {
-      const data = await getInterview(id);
-      setCurrentQuestionNum(data.currentQuestion);
-      setTotalQuestions(data.totalQuestions);
+    const loadInterview = async () => {
+      try {
+        const data = await getInterview(id);
+        setCurrentQuestionNum(data.currentQuestion);
+        setTotalQuestions(data.totalQuestions);
 
-      if (data.questions && data.questions.length > 0) {
-        const qIndex = data.currentQuestion - 1;
-        setCurrentQuestion(data.questions[qIndex] || data.questions[0]);
-      }
-
-      const interviewerMsgs = data.messages.filter(
-        (m) => m.role === 'interviewer'
-      );
-      if (data.currentQuestion === 1 && interviewerMsgs.length >= 1) {
-        setInterviewerText(interviewerMsgs[0].content);
-      } else if (interviewerMsgs.length > 0) {
-        setInterviewerText(interviewerMsgs[interviewerMsgs.length - 1].content);
-      }
-
-      if (data.currentQuestion === 1) {
-        const audio = location.state?.audio || data.lastAudio;
-        if (audio) {
-          setCurrentAudio(audio);
-          setInterviewerState(STATE_SPEAKING);
-        } else {
-          setInterviewerState(STATE_SPEAKING);
-          setTimeout(() => setInterviewerState(STATE_LISTENING), 3000);
+        if (data.questions?.length > 0) {
+          const idx = data.currentQuestion - 1;
+          setCurrentQuestion(data.questions[idx] || data.questions[0]);
         }
-      } else {
-        setInterviewerState(STATE_LISTENING);
+
+        const interviewerMsgs = data.messages.filter((m) => m.role === 'interviewer');
+        if (data.currentQuestion === 1 && interviewerMsgs.length >= 1) {
+          setInterviewerText(interviewerMsgs[0].content);
+        } else if (interviewerMsgs.length > 0) {
+          setInterviewerText(interviewerMsgs[interviewerMsgs.length - 1].content);
+        }
+
+        if (data.currentQuestion === 1) {
+          const audio = location.state?.audio || data.lastAudio;
+          if (audio) {
+            setCurrentAudio(audio);
+            setInterviewerState(STATE_SPEAKING);
+          } else {
+            setInterviewerState(STATE_SPEAKING);
+            setTimeout(() => setInterviewerState(STATE_LISTENING), 3000);
+          }
+        } else {
+          setInterviewerState(STATE_LISTENING);
+        }
+      } catch {
+        toast.error('Failed to load interview');
+        navigate('/');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      toast.error('Failed to load interview');
-      navigate('/');
-    } finally {
-      setLoading(false);
-    }
-  };
-  loadInterview();
-}, [id, navigate, location.state]);
+    };
+    loadInterview();
+  }, [id, navigate, location.state]);
 
-const handleAudioEnded = () => {
-  if (interviewerState === STATE_FAREWELL) return;
-  setTimeout(() => setInterviewerState(STATE_LISTENING), 3000);
-};
-
-const resetAnswerFields = () => {
-  setTextAnswer('');
-  setCode('');
-  setCodeEvaluation(null);
-  setShowTextFallback(false);
-};
-
-const processAnswerResult = (result) => {
-  if (result.isComplete) {
-    const farewellText =
-      'Thank you for completing the interview! I really enjoyed our conversation. Let me prepare your detailed feedback report...';
-    setFarewellMessage(farewellText);
-    setInterviewerState(STATE_FAREWELL);
-
-    if (result.audio) {
-      setTimeout(() => {
-        setCurrentAudio(result.audio);
-        setAudioKey((prev) => prev + 1);
-      }, 100);
-      setTimeout(() => handleEndInterview(), 10000);
-    } else {
-      setTimeout(() => handleEndInterview(), 4000);
-    }
-    return;
-  }
-
-  setInterviewerText(result.response);
-  setCurrentQuestionNum(result.currentQuestion);
-  setCurrentQuestion(result.question);
-  setCurrentAudio(result.audio);
-  setAudioKey((prev) => prev + 1);
-  resetAnswerFields();
-
-  setInterviewerState(STATE_SPEAKING);
-  if (!result.audio) {
+  const handleAudioEnded = () => {
+    if (interviewerState === STATE_FAREWELL) return;
     setTimeout(() => setInterviewerState(STATE_LISTENING), 3000);
-  }
-};
+  };
 
-const submitAndProcess = async (answerText) => {
-  setSubmitting(true);
-  setInterviewerState(STATE_THINKING);
-  try {
-    const result = await submitTextAnswer(id, answerText);
-    processAnswerResult(result);
-  } catch (error) {
-    toast.error(error.response?.data?.message || 'Failed to submit answer');
-    setInterviewerState(STATE_LISTENING);
-  } finally {
-    setSubmitting(false);
-  }
-};
+  const resetAnswerFields = () => {
+    setTextAnswer('');
+    setCode('');
+    setCodeEvaluation(null);
+    setShowTextFallback(false);
+  };
 
-const handleRecordingComplete = async (audioBlob) => {
-  setSubmitting(true);
-  setInterviewerState(STATE_THINKING);
-  try {
-    const data = await transcribeAudio(audioBlob);
-    const answerText =
-      data.text && !data.text.startsWith('[')
-        ? data.text
-        : 'The candidate provided a verbal response.';
-
-    const result = await submitTextAnswer(id, answerText);
-    processAnswerResult(result);
-  } catch (error) {
-    toast.error(error.response?.data?.message || 'Failed to submit answer');
-    setInterviewerState(STATE_LISTENING);
-  } finally {
-    setSubmitting(false);
-  }
-};
-
-const handleSubmitText = () => {
-  if (!textAnswer.trim()) return toast.error('Please type your answer.');
-  submitAndProcess(textAnswer);
-};
-
-const handleSubmitCode = async () => {
-  if (!code.trim()) return toast.error('Please write some code.');
-  setSubmitting(true);
-  setInterviewerState(STATE_THINKING);
-  try {
-    const result = await submitCode(id, code, codeLanguage);
-    setCodeEvaluation(result.evaluation);
-    toast.success(`Code evaluated: ${result.evaluation.score}/100`);
-
+  const processAnswerResult = (result) => {
     if (result.isComplete) {
       setFarewellMessage(
-        'Thank you for completing the interview! I really enjoyed our conversation. Let me prepare your detailed feedback report...'
+        'Thank you for completing the interview! I really enjoyed our conversation. Let me prepare your detailed feedback report…'
       );
       setInterviewerState(STATE_FAREWELL);
       if (result.audio) {
         setTimeout(() => {
           setCurrentAudio(result.audio);
-          setAudioKey((prev) => prev + 1);
+          setAudioKey((p) => p + 1);
         }, 100);
         setTimeout(() => handleEndInterview(), 10000);
       } else {
@@ -206,470 +127,507 @@ const handleSubmitCode = async () => {
       return;
     }
 
-    setTimeout(() => processAnswerResult(result), 2500);
-  } catch (error) {
-    toast.error('Failed to evaluate code');
-    setInterviewerState(STATE_LISTENING);
-  } finally {
-    setSubmitting(false);
-  }
-};
+    setInterviewerText(result.response);
+    setCurrentQuestionNum(result.currentQuestion);
+    setCurrentQuestion(result.question);
+    setCurrentAudio(result.audio);
+    setAudioKey((p) => p + 1);
+    resetAnswerFields();
+    setInterviewerState(STATE_SPEAKING);
+    if (!result.audio) setTimeout(() => setInterviewerState(STATE_LISTENING), 3000);
+  };
 
-const handleEndInterview = async () => {
-  setEnding(true);
-  try {
-    await endInterview(id);
-    navigate(`/feedback/${id}`);
-  } catch (error) {
-    toast.error('Failed to generate feedback');
-  } finally {
-    setEnding(false);
-  }
-};
+  const submitAndProcess = async (answerText) => {
+    setSubmitting(true);
+    setInterviewerState(STATE_THINKING);
+    try {
+      const result = await submitTextAnswer(id, answerText);
+      processAnswerResult(result);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit answer');
+      setInterviewerState(STATE_LISTENING);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
+  const handleRecordingComplete = async (audioBlob) => {
+    setSubmitting(true);
+    setInterviewerState(STATE_THINKING);
+    try {
+      const data       = await transcribeAudio(audioBlob);
+      const answerText = data.text && !data.text.startsWith('[')
+        ? data.text
+        : 'The candidate provided a verbal response.';
+      const result = await submitTextAnswer(id, answerText);
+      processAnswerResult(result);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit answer');
+      setInterviewerState(STATE_LISTENING);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSubmitText = () => {
+    if (!textAnswer.trim()) return toast.error('Please type your answer.');
+    submitAndProcess(textAnswer);
+  };
+
+  const handleSubmitCode = async () => {
+    if (!code.trim()) return toast.error('Please write some code.');
+    setSubmitting(true);
+    setInterviewerState(STATE_THINKING);
+    try {
+      const result = await submitCode(id, code, codeLanguage);
+      setCodeEvaluation(result.evaluation);
+      toast.success(`Code evaluated: ${result.evaluation.score}/100`);
+
+      if (result.isComplete) {
+        setFarewellMessage(
+          'Thank you for completing the interview! I really enjoyed our conversation. Let me prepare your detailed feedback report…'
+        );
+        setInterviewerState(STATE_FAREWELL);
+        if (result.audio) {
+          setTimeout(() => { setCurrentAudio(result.audio); setAudioKey((p) => p + 1); }, 100);
+          setTimeout(() => handleEndInterview(), 10000);
+        } else {
+          setTimeout(() => handleEndInterview(), 4000);
+        }
+        return;
+      }
+      setTimeout(() => processAnswerResult(result), 2500);
+    } catch {
+      toast.error('Failed to evaluate code');
+      setInterviewerState(STATE_LISTENING);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEndInterview = async () => {
+    setEnding(true);
+    try {
+      await endInterview(id);
+      navigate(`/feedback/${id}`);
+    } catch {
+      toast.error('Failed to generate feedback');
+    } finally {
+      setEnding(false);
+    }
+  };
+
+  // ── Loading screen ──
   if (loading) {
     return (
-      <div className="interview-loading-state">
-        <div className="spinner-border spinner-border-sm" role="status" />
-        <p className="interview-loading-text">Loading interview...</p>
+      <div className="iv-loading">
+        <span className="iv-loading__spinner" aria-hidden="true" />
+        <p className="iv-loading__text">Loading interview…</p>
       </div>
     );
   }
 
-  const isCodeQuestion = currentQuestion?.isCodeQuestion;
+  const isCodeQuestion  = currentQuestion?.isCodeQuestion;
   const progressPercent = (currentQuestionNum / totalQuestions) * 100;
-  const isSpeaking = interviewerState === STATE_SPEAKING;
-  const isThinking = interviewerState === STATE_THINKING;
-  const isListening = interviewerState === STATE_LISTENING;
-  const isFarewell = interviewerState === STATE_FAREWELL;
+  const isSpeaking      = interviewerState === STATE_SPEAKING;
+  const isThinking      = interviewerState === STATE_THINKING;
+  const isListening     = interviewerState === STATE_LISTENING;
+  const isFarewell      = interviewerState === STATE_FAREWELL;
 
   return (
-    <div className="interview-layout">
-      <div className="interview-topbar">
-        <div className="topbar-left">
-          <span className="topbar-question-label">
+    <div className="iv-root">
+
+      {/* ── Top bar ── */}
+      <header className="iv-topbar">
+
+        {/* Brand */}
+        <div className="iv-topbar__brand">
+          <span className="iv-topbar__dot" aria-hidden="true" />
+          <span className="iv-topbar__name">InterviewAI</span>
+        </div>
+
+        {/* Progress */}
+        <div className="iv-topbar__progress">
+          <span className="iv-topbar__q-label">
             Question {currentQuestionNum} of {totalQuestions}
           </span>
-          <div className="topbar-progress-track">
-            <div
-              className="topbar-progress-fill"
-              style={{ width: `${progressPercent}%` }}
-            />
+          <div className="iv-progress-track" role="progressbar"
+            aria-valuenow={currentQuestionNum} aria-valuemax={totalQuestions}>
+            <div className="iv-progress-fill" style={{ width: `${progressPercent}%` }} />
           </div>
         </div>
-        <div className="topbar-right">
+
+        {/* End button */}
+        <div className="iv-topbar__actions">
           {currentQuestionNum >= totalQuestions && isListening && (
             <button
-              className={`topbar-end-btn ${ending ? 'topbar-end-btn-disabled' : ''}`}
+              className="iv-end-btn"
               onClick={handleEndInterview}
               disabled={ending}
+              aria-busy={ending}
             >
-              {ending ? 'Generating Feedback...' : 'End Interview'}
+              {ending ? (
+                <><span className="iv-end-btn__spinner" aria-hidden="true" /> Generating…</>
+              ) : 'End Interview'}
             </button>
           )}
         </div>
-      </div>
+      </header>
 
-      <div className="interviewer-panel">
-        <div className="interviewer-avatar-block">
-          <div className="interviewer-avatar-circle">
-            <FaUserTie className="interviewer-avatar-icon" />
-          </div>
-          <div className="interviewer-avatar-info">
-            <span className="interviewer-avatar-name">Natalie</span>
-            <span className="interviewer-avatar-role">AI Interviewer</span>
-          </div>
-        </div>
+      {/* ── Main two-column body ── */}
+      <main className="iv-body">
 
-        <div className="interviewer-status-block">
-          {isSpeaking && (
-            <span className="status-text status-speaking">Speaking...</span>
-          )}
-          {isThinking && (
-            <div className="status-thinking-row">
-              <div className="spinner-border spinner-border-sm" role="status" />
-              <span className="status-text status-thinking">Thinking...</span>
+        {/* ══ LEFT — Interviewer panel ══ */}
+        <section className="iv-left" aria-label="Interviewer">
+
+          {/* Avatar */}
+          <div className="iv-avatar">
+            <div className={`iv-avatar__ring ${isSpeaking ? 'iv-avatar__ring--pulse' : ''}`}>
+              <div className="iv-avatar__circle">
+                <FaUserTie className="iv-avatar__icon" aria-hidden="true" />
+              </div>
             </div>
-          )}
-          {isListening && (
-            <div className="status-listening-row">
-              <BsRecordCircleFill className="status-listening-icon" />
-              <span className="status-text status-listening">
-                Your turn to answer
+            <div className="iv-avatar__info">
+              <p className="iv-avatar__name">Natalie</p>
+              <p className="iv-avatar__role">AI Interviewer</p>
+            </div>
+          </div>
+
+          {/* Status pill */}
+          <div className="iv-status">
+            {isSpeaking && (
+              <span className="iv-status__pill iv-status__pill--speaking">
+                <span className="iv-status__blink" aria-hidden="true" />
+                Speaking
               </span>
-            </div>
-          )}
-          {isFarewell && (
-            <div className="status-farewell-row">
-              <div className="spinner-border spinner-border-sm" role="status" />
-              <span className="status-text status-farewell">
-                Wrapping up...
+            )}
+            {isThinking && (
+              <span className="iv-status__pill iv-status__pill--thinking">
+                <span className="iv-status__spinner" aria-hidden="true" />
+                Thinking
               </span>
-            </div>
-          )}
-        </div>
-
-        {currentAudio && (
-          <AudioPlayer
-            key={audioKey}
-            audioBase64={currentAudio}
-            autoPlay={true}
-            onEnded={handleAudioEnded}
-          />
-        )}
-
-        {isFarewell && (
-          <div className="interviewer-farewell-block">
-            <p className="interviewer-farewell-text">{farewellMessage}</p>
-            <div className="spinner-border spinner-border-sm" role="status" />
-          </div>
-        )}
-
-        {!isFarewell && !isThinking && interviewerText && (
-          <div className="interviewer-message-block">
-            <p className="interviewer-message-text">{interviewerText}</p>
-            {isListening && currentAudio && (
-              <button
-                className="interviewer-hear-again-link"
-                onClick={() => {
-                  setAudioKey((prev) => prev + 1);
-                  setInterviewerState(STATE_SPEAKING);
-                }}
-              >
-                Hear Again
-              </button>
+            )}
+            {isListening && (
+              <span className="iv-status__pill iv-status__pill--listening">
+                <BsMicFill aria-hidden="true" />
+                Your turn
+              </span>
+            )}
+            {isFarewell && (
+              <span className="iv-status__pill iv-status__pill--farewell">
+                <span className="iv-status__spinner" aria-hidden="true" />
+                Wrapping up
+              </span>
             )}
           </div>
-        )}
 
-        {!isFarewell && currentQuestion && !isThinking && (
-          <div className="interviewer-question-callout">
-            <div className="question-callout-header">
-              <span className="question-num-badge">Q{currentQuestionNum}</span>
-              <span className="question-type-badge">{currentQuestion.type}</span>
-              {isCodeQuestion && (
-                <span className="question-code-badge">
-                  <BsCodeSlash className="question-code-icon" /> Code
-                </span>
+          {/* Audio player */}
+          {currentAudio && (
+            <div className="iv-audio-wrap">
+              <AudioPlayer
+                key={audioKey}
+                audioBase64={currentAudio}
+                autoPlay={true}
+                onEnded={handleAudioEnded}
+              />
+            </div>
+          )}
+
+          {/* Farewell message */}
+          {isFarewell && (
+            <div className="iv-farewell">
+              <p className="iv-farewell__text">{farewellMessage}</p>
+              <span className="iv-farewell__spinner" aria-hidden="true" />
+            </div>
+          )}
+
+          {/* Interviewer speech bubble */}
+          {!isFarewell && !isThinking && interviewerText && (
+            <div className="iv-bubble">
+              <p className="iv-bubble__text">{interviewerText}</p>
+              {isListening && currentAudio && (
+                <button
+                  className="iv-bubble__replay"
+                  onClick={() => { setAudioKey((p) => p + 1); setInterviewerState(STATE_SPEAKING); }}
+                >
+                  ↩ Hear again
+                </button>
               )}
             </div>
-            <p className="question-callout-text">{currentQuestion.text}</p>
-          </div>
-        )}
-      </div>
+          )}
 
-      <div className="answer-panel">
-        {isListening && (
-          <>
-            {!isCodeQuestion && (
-              <>
-                <div className="voice-answer-block">
-                  <div className="voice-block-header">
-                    <div>
-                      <h3 className="voice-block-title">Record Your Answer</h3>
-                      <p className="voice-block-desc">
-                        Click record, speak your answer (max 5 min), then submit
-                      </p>
-                    </div>
+          {/* Question callout */}
+          {!isFarewell && currentQuestion && !isThinking && (
+            <div className="iv-question">
+              <div className="iv-question__badges">
+                <span className="iv-question__num">Q{currentQuestionNum}</span>
+                <span className="iv-question__type">{currentQuestion.type}</span>
+                {isCodeQuestion && (
+                  <span className="iv-question__code-tag">
+                    <BsCodeSlash aria-hidden="true" /> Code
+                  </span>
+                )}
+              </div>
+              <p className="iv-question__text">{currentQuestion.text}</p>
+            </div>
+          )}
+
+          {/* Timeline dots */}
+          <div className="iv-timeline" aria-label="Progress">
+            {Array.from({ length: totalQuestions }, (_, i) => {
+              const n          = i + 1;
+              const isAnswered = n < currentQuestionNum;
+              const isCurrent  = n === currentQuestionNum;
+              return (
+                <div
+                  key={i}
+                  className={[
+                    'iv-dot',
+                    isAnswered ? 'iv-dot--done'    : '',
+                    isCurrent  ? 'iv-dot--current' : '',
+                  ].join(' ')}
+                  aria-label={`Question ${n}${isAnswered ? ' (answered)' : isCurrent ? ' (current)' : ''}`}
+                >
+                  {isAnswered ? <BsCheck aria-hidden="true" /> : n}
+                </div>
+              );
+            })}
+          </div>
+
+        </section>
+
+        {/* ══ RIGHT — Answer panel ══ */}
+        <section className="iv-right" aria-label="Your answer">
+
+          {/* Speaking / thinking / farewell placeholder */}
+          {(isSpeaking || isThinking || isFarewell) && (
+            <div className="iv-right__placeholder">
+              <div className="iv-placeholder__icon" aria-hidden="true">
+                {isSpeaking  && <BsMicFill />}
+                {isThinking  && <span className="iv-placeholder__spinner" />}
+                {isFarewell  && <span className="iv-placeholder__spinner" />}
+              </div>
+              <p className="iv-placeholder__text">
+                {isSpeaking && 'Listen carefully to Natalie…'}
+                {isThinking && 'Natalie is preparing the next question…'}
+                {isFarewell && 'Generating your feedback report…'}
+              </p>
+            </div>
+          )}
+
+          {/* ── Listening: voice or text answers ── */}
+          {isListening && !isCodeQuestion && (
+            <div className="iv-answer-block">
+
+              {/* Voice section */}
+              <div className="iv-voice">
+                <div className="iv-voice__header">
+                  <BsRecordCircleFill className="iv-voice__icon" aria-hidden="true" />
+                  <div>
+                    <h3 className="iv-voice__title">Record Your Answer</h3>
+                    <p className="iv-voice__hint">Speak clearly — max 5 minutes</p>
                   </div>
-                  <div className="voice-block-area">
-                    {!submitting && (
+                </div>
+
+                <div className="iv-voice__recorder">
+                  {!submitting ? (
+                    <VoiceRecorder onRecordingComplete={handleRecordingComplete} disabled={submitting} />
+                  ) : (
+                    <div className="iv-processing">
+                      <span className="iv-processing__spinner" aria-hidden="true" />
+                      <p className="iv-processing__text">Processing your answer…</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Text fallback */}
+              <div className="iv-text-fallback">
+                <button
+                  className="iv-text-fallback__toggle"
+                  onClick={() => setShowTextFallback((v) => !v)}
+                >
+                  <span className="iv-text-fallback__label">
+                    <BsKeyboardFill aria-hidden="true" />
+                    {showTextFallback ? 'Hide text input' : 'Prefer typing instead?'}
+                  </span>
+                  <span className={`iv-text-fallback__arrow ${showTextFallback ? 'iv-text-fallback__arrow--open' : ''}`}>
+                    ▾
+                  </span>
+                </button>
+
+                {showTextFallback && (
+                  <div className="iv-text-area-block">
+                    <textarea
+                      className="iv-textarea"
+                      placeholder="Type your answer here…"
+                      value={textAnswer}
+                      onChange={(e) => setTextAnswer(e.target.value)}
+                      rows={5}
+                      disabled={submitting}
+                    />
+                    <button
+                      className="iv-submit-btn"
+                      onClick={handleSubmitText}
+                      disabled={submitting || !textAnswer.trim()}
+                    >
+                      {submitting ? 'Submitting…' : 'Submit Answer'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Listening: code questions ── */}
+          {isListening && isCodeQuestion && (
+            <div className="iv-code-block">
+
+              <div className="iv-code-block__header">
+                <h3 className="iv-code-block__title">
+                  <BsCodeSlash aria-hidden="true" />
+                  {currentQuestion.codeType === 'fix'
+                    ? 'Fix the Code'
+                    : currentQuestion.codeType === 'explain'
+                    ? 'Explain the Code'
+                    : 'Write Your Solution'}
+                </h3>
+                <select
+                  className="iv-lang-select"
+                  value={codeLanguage}
+                  onChange={(e) => setCodeLanguage(e.target.value)}
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                  <option value="java">Java</option>
+                  <option value="cpp">C++</option>
+                </select>
+              </div>
+
+              {/* Snippet display */}
+              {currentQuestion.codeSnippet && (
+                <div className="iv-snippet">
+                  <p className="iv-snippet__label">
+                    {currentQuestion.codeType === 'fix' ? 'Buggy Code' : 'Code to Explain'}
+                  </p>
+                  <pre className="iv-snippet__pre">{currentQuestion.codeSnippet}</pre>
+                </div>
+              )}
+
+              {/* Code editor or explain mode */}
+              {currentQuestion.codeType !== 'explain' ? (
+                <>
+                  <div className="iv-editor-wrap">
+                    <CodeEditor
+                      value={code || (currentQuestion.codeType === 'fix' ? currentQuestion.codeSnippet || '' : '')}
+                      onChange={(val) => setCode(val || '')}
+                      language={currentQuestion.codeLanguage || codeLanguage}
+                    />
+                  </div>
+                  <button
+                    className="iv-submit-btn"
+                    onClick={handleSubmitCode}
+                    disabled={submitting || !code.trim()}
+                  >
+                    {submitting
+                      ? 'Evaluating…'
+                      : currentQuestion.codeType === 'fix'
+                      ? 'Submit Fixed Code'
+                      : 'Submit Solution'}
+                  </button>
+                </>
+              ) : (
+                <div className="iv-explain-block">
+                  <p className="iv-explain-block__hint">
+                    Explain verbally what this code does, or type your explanation below.
+                  </p>
+                  <div className="iv-voice__recorder">
+                    {!submitting ? (
                       <VoiceRecorder
-                        onRecordingComplete={handleRecordingComplete}
+                        onRecordingComplete={async (audioBlob) => {
+                          setSubmitting(true);
+                          setInterviewerState(STATE_THINKING);
+                          try {
+                            const data = await transcribeAudio(audioBlob);
+                            const text = data.text || 'Verbal explanation provided.';
+                            setCode(text);
+                            setTimeout(() => handleSubmitCode(), 100);
+                          } catch {
+                            setCode('Verbal explanation provided.');
+                            setTimeout(() => handleSubmitCode(), 100);
+                          }
+                        }}
                         disabled={submitting}
                       />
+                    ) : (
+                      <div className="iv-processing">
+                        <span className="iv-processing__spinner" aria-hidden="true" />
+                        <p className="iv-processing__text">Processing your explanation…</p>
+                      </div>
                     )}
-                    {submitting && (
-                      <div className="processing-indicator">
-                        <div
-                          className="spinner-border spinner-border-sm"
-                          role="status"
+                  </div>
+
+                  {/* Text fallback inside explain */}
+                  <div className="iv-text-fallback">
+                    <button
+                      className="iv-text-fallback__toggle"
+                      onClick={() => setShowTextFallback((v) => !v)}
+                    >
+                      <span className="iv-text-fallback__label">
+                        <BsKeyboardFill aria-hidden="true" />
+                        {showTextFallback ? 'Hide' : 'Prefer typing your explanation?'}
+                      </span>
+                      <span className={`iv-text-fallback__arrow ${showTextFallback ? 'iv-text-fallback__arrow--open' : ''}`}>
+                        ▾
+                      </span>
+                    </button>
+                    {showTextFallback && (
+                      <div className="iv-text-area-block">
+                        <textarea
+                          className="iv-textarea"
+                          placeholder="Type your explanation…"
+                          value={code}
+                          onChange={(e) => setCode(e.target.value)}
+                          rows={5}
+                          disabled={submitting}
                         />
-                        <p className="processing-text">
-                          Processing your answer...
-                        </p>
+                        <button
+                          className="iv-submit-btn"
+                          onClick={handleSubmitCode}
+                          disabled={submitting || !code.trim()}
+                        >
+                          {submitting ? 'Evaluating…' : 'Submit Explanation'}
+                        </button>
                       </div>
                     )}
                   </div>
                 </div>
+              )}
 
-                <div className="text-fallback-block">
-                  <button
-                    className="text-fallback-toggle-btn"
-                    onClick={() => setShowTextFallback(!showTextFallback)}
-                  >
-                    <span className="text-fallback-toggle-label">
-                      <BsKeyboardFill className="text-fallback-icon" />
-                      {showTextFallback
-                        ? 'Hide text input'
-                        : 'Prefer typing instead?'}
+              {/* Code evaluation result */}
+              {codeEvaluation && (
+                <div className={`iv-eval ${codeEvaluation.isCorrect ? 'iv-eval--correct' : 'iv-eval--wrong'}`}>
+                  <div className="iv-eval__header">
+                    <span className="iv-eval__status">
+                      {codeEvaluation.isCorrect
+                        ? <><BsCheckCircleFill aria-hidden="true" /> Correct</>
+                        : <><BsXCircleFill aria-hidden="true" /> Needs Improvement</>}
                     </span>
-                    <span
-                      className={
-                        showTextFallback
-                          ? 'toggle-arrow-open'
-                          : 'toggle-arrow-closed'
-                      }
-                    >
-                      &#9660;
-                    </span>
-                  </button>
-                  {showTextFallback && (
-                    <div className="text-answer-block">
-                      <textarea
-                        className={`text-answer-textarea ${submitting ? 'text-answer-textarea-disabled' : ''}`}
-                        placeholder="Type your answer here..."
-                        value={textAnswer}
-                        onChange={(e) => setTextAnswer(e.target.value)}
-                        rows={4}
-                        disabled={submitting}
-                      />
-                      <button
-                        className={`submit-text-btn ${submitting || !textAnswer.trim() ? 'submit-text-btn-disabled' : ''}`}
-                        onClick={handleSubmitText}
-                        disabled={submitting || !textAnswer.trim()}
-                      >
-                        {submitting ? 'Submitting...' : 'Submit Text Answer'}
-                      </button>
-                    </div>
+                    <span className="iv-eval__score">{codeEvaluation.score}/100</span>
+                  </div>
+                  <p className="iv-eval__feedback">{codeEvaluation.feedback}</p>
+                  {codeEvaluation.suggestions && (
+                    <p className="iv-eval__tip">
+                      <strong>Tip:</strong> {codeEvaluation.suggestions}
+                    </p>
                   )}
                 </div>
-              </>
-            )}
+              )}
+            </div>
+          )}
 
-            {isCodeQuestion && (
-              <div className="code-answer-block">
-                <div className="code-block-header">
-                  <h3 className="code-block-title">
-                    <BsCodeSlash className="code-title-icon" />
-                    {currentQuestion.codeType === 'fix'
-                      ? 'Fix the Code'
-                      : currentQuestion.codeType === 'explain'
-                      ? 'Explain the Code'
-                      : 'Write Your Solution'}
-                  </h3>
-                  <select
-                    value={codeLanguage}
-                    onChange={(e) => setCodeLanguage(e.target.value)}
-                    className="code-language-select"
-                  >
-                    <option value="javascript">JavaScript</option>
-                    <option value="python">Python</option>
-                    <option value="java">Java</option>
-                    <option value="cpp">C++</option>
-                  </select>
-                </div>
-
-                {currentQuestion.codeSnippet && (
-                  <div className="code-snippet-box">
-                    <h4 className="code-snippet-label">
-                      {currentQuestion.codeType === 'fix'
-                        ? 'Buggy Code:'
-                        : 'Code to Explain:'}
-                    </h4>
-                    <pre className="code-snippet-pre">
-                      {currentQuestion.codeSnippet}
-                    </pre>
-                  </div>
-                )}
-
-                {currentQuestion.codeType !== 'explain' ? (
-                  <>
-                    <CodeEditor
-                      value={
-                        code ||
-                        (currentQuestion.codeType === 'fix'
-                          ? currentQuestion.codeSnippet || ''
-                          : '')
-                      }
-                      onChange={(val) => setCode(val || '')}
-                      language={currentQuestion.codeLanguage || codeLanguage}
-                    />
-                    <button
-                      className={`submit-code-btn ${submitting || !code.trim() ? 'submit-code-btn-disabled' : ''}`}
-                      onClick={handleSubmitCode}
-                      disabled={submitting || !code.trim()}
-                    >
-                      {submitting
-                        ? 'Evaluating...'
-                        : currentQuestion.codeType === 'fix'
-                        ? 'Submit Fixed Code'
-                        : 'Submit Solution'}
-                    </button>
-                  </>
-                ) : (
-                  <div className="explain-answer-block">
-                    <p className="explain-hint-text">
-                      Explain verbally what this code does, or type your
-                      explanation below.
-                    </p>
-
-                    <div className="voice-block-area">
-                      {!submitting && (
-                        <VoiceRecorder
-                          onRecordingComplete={async (audioBlob) => {
-                            setSubmitting(true);
-                            setInterviewerState(STATE_THINKING);
-                            try {
-                              const data = await transcribeAudio(audioBlob);
-                              const text =
-                                data.text || 'Verbal explanation provided.';
-                              setCode(text);
-                              setTimeout(() => handleSubmitCode(), 100);
-                            } catch (error) {
-                              setCode('Verbal explanation provided.');
-                              setTimeout(() => handleSubmitCode(), 100);
-                            }
-                          }}
-                          disabled={submitting}
-                        />
-                      )}
-                      {submitting && (
-                        <div className="processing-indicator">
-                          <div
-                            className="spinner-border spinner-border-sm"
-                            role="status"
-                          />
-                          <p className="processing-text">
-                            Processing your explanation...
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="text-fallback-block">
-                      <button
-                        className="text-fallback-toggle-btn"
-                        onClick={() => setShowTextFallback(!showTextFallback)}
-                      >
-                        <span className="text-fallback-toggle-label">
-                          <BsKeyboardFill className="text-fallback-icon" />
-                          {showTextFallback
-                            ? 'Hide'
-                            : 'Prefer typing your explanation?'}
-                        </span>
-                        <span
-                          className={
-                            showTextFallback
-                              ? 'toggle-arrow-open'
-                              : 'toggle-arrow-closed'
-                          }
-                        >
-                          &#9660;
-                        </span>
-                      </button>
-                      {showTextFallback && (
-                        <div className="text-answer-block">
-                          <textarea
-                            className={`text-answer-textarea ${submitting ? 'text-answer-textarea-disabled' : ''}`}
-                            placeholder="Type your explanation... What does this code do?"
-                            value={code}
-                            onChange={(e) => setCode(e.target.value)}
-                            rows={4}
-                            disabled={submitting}
-                          />
-                          <button
-                            className={`submit-code-btn ${submitting || !code.trim() ? 'submit-code-btn-disabled' : ''}`}
-                            onClick={handleSubmitCode}
-                            disabled={submitting || !code.trim()}
-                          >
-                            {submitting
-                              ? 'Evaluating...'
-                              : 'Submit Explanation'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {codeEvaluation && (
-                  <div
-                    className={
-                      codeEvaluation.isCorrect
-                        ? 'code-eval-block code-eval-correct'
-                        : 'code-eval-block code-eval-incorrect'
-                    }
-                  >
-                    <div className="code-eval-header">
-                      <span className="code-eval-status">
-                        {codeEvaluation.isCorrect ? (
-                          <>
-                            <BsCheckCircleFill className="code-eval-icon-correct" />
-                            Correct
-                          </>
-                        ) : (
-                          <>
-                            <BsXCircleFill className="code-eval-icon-incorrect" />
-                            Needs Improvement
-                          </>
-                        )}
-                      </span>
-                      <span className="code-eval-score">
-                        Score: {codeEvaluation.score}/100
-                      </span>
-                    </div>
-                    <p className="code-eval-feedback">
-                      {codeEvaluation.feedback}
-                    </p>
-                    {codeEvaluation.suggestions && (
-                      <p className="code-eval-suggestions">
-                        <strong>Tip:</strong> {codeEvaluation.suggestions}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
-
-        {isSpeaking && (
-          <div className="answer-panel-status">
-            <p className="answer-panel-status-text">
-              Natalie is speaking... please listen carefully
-            </p>
-          </div>
-        )}
-        {isThinking && (
-          <div className="answer-panel-status">
-            <div className="spinner-border spinner-border-sm" role="status" />
-            <p className="answer-panel-status-text">
-              Natalie is preparing the next question...
-            </p>
-          </div>
-        )}
-        {isFarewell && (
-          <div className="answer-panel-status">
-            <div className="spinner-border spinner-border-sm" role="status" />
-            <p className="answer-panel-status-text">
-              Generating your feedback report...
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="interview-timeline">
-        <div className="timeline-dots-row">
-          {Array.from({ length: totalQuestions }, (_, i) => {
-            const qNum = i + 1;
-            const isAnswered = qNum < currentQuestionNum;
-            const isCurrent = qNum === currentQuestionNum;
-            let dotClass = 'timeline-dot-circle';
-            if (isAnswered) dotClass += ' timeline-dot-answered';
-            if (isCurrent) dotClass += ' timeline-dot-current';
-            return (
-              <div key={i} className={dotClass}>
-                {isAnswered ? (
-                  <BsCheck className="timeline-check-icon" />
-                ) : (
-                  qNum
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }
