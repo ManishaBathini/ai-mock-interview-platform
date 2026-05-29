@@ -5,7 +5,9 @@ An AI-powered mock interview platform that helps candidates prepare for technica
 ## 🌐 Live Demo
 
 **Application:** https://ai-mock-interview-platform-peach-xi.vercel.app/
-Note: The backend is hosted on Render Free Tier and may take up to 60 seconds to wake up after periods of inactivity.
+
+> Note: The backend is hosted on Render's free tier and may take up to 60 seconds to wake up after periods of inactivity.
+
 ---
 
 ## 🚀 Key Features
