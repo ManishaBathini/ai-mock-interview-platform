@@ -1,86 +1,90 @@
 # 🎯 AI Mock Interview Platform
 
-An AI-powered mock interview platform that helps job seekers practice technical interviews through voice-based conversations, live coding challenges, personalized questions, and detailed performance feedback.
+An AI-powered mock interview platform that helps candidates prepare for technical interviews through personalized questions, voice-based interactions, live coding challenges, and AI-generated feedback.
 
-## 🚀 Features
+## 🌐 Live Demo
 
-### 📄 Resume-Based Question Generation
+**Application:** https://your-vercel-url.vercel.app
 
-* Upload your resume in PDF format
-* AI analyzes skills, projects, and experience
-* Generates personalized interview questions
+---
 
-### 🎙️ Voice-Based Interviews
+## 🚀 Key Features
 
-* Real-time AI interviewer interaction
-* Speech-to-text powered conversations
-* Natural interview simulation experience
-
-### 💻 Live Coding Challenges
-
-* Built-in code editor
-* Practice technical coding rounds
-* Supports multiple programming roles
-
-### 📊 AI Performance Analysis
-
-* Detailed interview feedback
-* Category-wise scoring
-* Strength and improvement suggestions
-
-### 📚 Interview History
-
-* Track previous interview attempts
-* Review scores and feedback
-* Monitor progress over time
-
-### 👨‍💻 Multi-Role Support
-
-Supports interviews for:
-
-* Frontend Developer
-* Backend Developer
-* Full Stack Developer
-* Data Analyst
-* DevOps Engineer
-* Software Engineer
+* 📄 Resume-based interview question generation
+* 🎙️ Voice-powered mock interview experience
+* 💻 Live coding challenges
+* 📊 AI-generated feedback and scoring
+* 📚 Interview history tracking
+* 🔐 Secure JWT authentication
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Frontend
+**Frontend:** React.js, Vite, React Router, CSS3
 
-* React.js
-* React Router
-* CSS3
-* Vite
+**Backend:** Node.js, Express.js
 
-### Backend
+**Database:** MongoDB Atlas
 
-* Node.js
-* Express.js
+**Authentication:** JWT (JSON Web Tokens)
 
-### Database
+**AI Services:** Google Gemini API, AssemblyAI, Murf AI
 
-* MongoDB Atlas
+**Deployment:** Vercel, Render
 
-### AI & APIs
-
-* Google Gemini API
-* Murf AI
-* AssemblyAI
+**Version Control:** Git, GitHub
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-project/
-├── client/      # Frontend application
-├── server/      # Backend application
-└── README.md
+ai-mock-interview-platform/
+│
+├── client/         # React Frontend
+├── server/         # Node.js Backend
+├── screenshots/    # Project Screenshots
+├── README.md
+└── .gitignore
 ```
+
+---
+
+## 📸 Screenshots
+
+### Login Page
+
+(Add Screenshot)
+
+### Dashboard
+
+(Add Screenshot)
+
+### Interview Setup
+
+(Add Screenshot)
+
+### Live Interview
+
+(Add Screenshot)
+
+### Feedback Report
+
+(Add Screenshot)
+
+---
+
+## ⚡ Challenges Faced
+
+* Integrating multiple AI services into a single workflow.
+* Generating personalized interview questions from uploaded resumes.
+* Implementing JWT-based authentication and protected routes.
+* Managing voice interactions for mock interviews.
+* Deploying frontend and backend services using Vercel and Render.
+* Handling CORS, environment variables, and production API configuration.
+
+---
 
 ## ⚙️ Installation
 
@@ -111,44 +115,16 @@ npm run dev
 
 ## 🔑 Environment Variables
 
-Create a `.env` file inside the server directory and configure:
+Create a `.env` file inside the `server` directory:
 
 ```env
 MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+
 GEMINI_API_KEY=your_gemini_api_key
-MURF_API_KEY=your_murf_api_key
 ASSEMBLYAI_API_KEY=your_assemblyai_api_key
-JWT_SECRET=your_secret_key
+MURF_API_KEY=your_murf_api_key
 ```
-
----
-
-## 🎯 Key Functionalities
-
-1. Resume Upload & Analysis
-2. AI-Powered Interview Generation
-3. Voice-Based Interview Sessions
-4. Live Coding Assessment
-5. Performance Scoring & Feedback
-6. Interview History Tracking
-
----
-
-## 📸 Screenshots
-
-Add screenshots of:
-
-* Login Page
-* Dashboard
-* Interview Setup
-* Live Interview Screen
-* Feedback Report
-
----
-
-## 🌐 Live Demo
-
-Coming Soon
 
 ---
 
