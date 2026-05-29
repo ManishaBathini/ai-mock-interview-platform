@@ -4,7 +4,7 @@ An AI-powered mock interview platform that helps candidates prepare for technica
 
 ## 🌐 Live Demo
 
-**Application:** https://your-vercel-url.vercel.app
+**Application:** https://ai-mock-interview-platform-peach-xi.vercel.app/
 
 ---
 
