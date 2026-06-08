@@ -57,23 +57,27 @@ ai-mock-interview-platform/
 
 ### Login Page
 
-(Add Screenshot)
+![Login Page](screenshots/login-page.png)
 
 ### Dashboard
 
-(Add Screenshot)
+![Dashboard](screenshots/homepage.png)
 
 ### Interview Setup
 
-(Add Screenshot)
+![Interview Setup](screenshots/interview-setup.png)
 
 ### Live Interview
 
-(Add Screenshot)
+![Live Interview](screenshots/live-interview.png)
 
 ### Feedback Report
 
-(Add Screenshot)
+![Feedback Report](screenshots/feedback.png)
+
+### Interview History
+
+![Interview History](screenshots/history-page.png)
 
 ---
 
