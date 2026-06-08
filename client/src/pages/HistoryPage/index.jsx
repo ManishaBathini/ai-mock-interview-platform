@@ -12,6 +12,7 @@ import {
   BsPlayCircleFill,
   BsChevronLeft,
   BsChevronRight,
+  BsLightningChargeFill,
 } from 'react-icons/bs';
 import toast from 'react-hot-toast';
 import './index.css';
@@ -21,12 +22,12 @@ const ITEMS_PER_PAGE = 8;
 function HistoryPage() {
   const navigate = useNavigate();
 
-  const [interviews,    setInterviews]    = useState([]);
-  const [loading,       setLoading]       = useState(true);
-  const [page,          setPage]          = useState(1);
-  const [totalPages,    setTotalPages]    = useState(1);
-  const [totalEntries,  setTotalEntries]  = useState(0);
-  const [clearPending,  setClearPending]  = useState(false);
+  const [interviews,   setInterviews]   = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [page,         setPage]         = useState(1);
+  const [totalPages,   setTotalPages]   = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
+  const [clearPending, setClearPending] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -79,32 +80,34 @@ function HistoryPage() {
     }
   };
 
-  // Build page number list — show at most 5 pages around current
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
     (n) => n === 1 || n === totalPages || Math.abs(n - page) <= 1
   );
 
   return (
-    <div className="his-root">
-      <div className="his-orb his-orb--amber" aria-hidden="true" />
-      <div className="his-orb his-orb--blue"  aria-hidden="true" />
+    <div className="his-page">
+      {/* ── Header ── */}
+      <header className="his-topbar">
+        <div className="his-topbar__left">
+          <p className="his-topbar__eyebrow">Your Progress</p>
+          <h1 className="his-topbar__heading">
+            Interview <em className="his-topbar__accent">History</em>
+          </h1>
+          {totalEntries > 0 && (
+            <p className="his-topbar__sub">
+              {totalEntries} interview{totalEntries !== 1 ? 's' : ''} recorded
+            </p>
+          )}
+        </div>
 
-      <div className="his-inner">
-
-        {/* ── Page header ── */}
-        <header className="his-header">
-          <div className="his-header__left">
-            <p className="his-header__eyebrow">Your Progress</p>
-            <h1 className="his-header__heading">
-              Interview <em className="his-header__accent">History</em>
-            </h1>
-            {totalEntries > 0 && (
-              <span className="his-header__badge">
-                {totalEntries} interview{totalEntries !== 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-
+        <div className="his-topbar__actions">
+          <button
+            className="his-new-btn"
+            onClick={() => navigate('/setup')}
+          >
+            <BsLightningChargeFill aria-hidden="true" />
+            New Interview
+          </button>
           {interviews.length > 0 && (
             <button
               className="his-clear-btn"
@@ -112,98 +115,93 @@ function HistoryPage() {
               disabled={clearPending}
               aria-label="Clear all interview history"
             >
-              <MdDeleteSweep className="his-clear-btn__icon" aria-hidden="true" />
+              <MdDeleteSweep aria-hidden="true" />
               {clearPending ? 'Clearing…' : 'Clear All'}
             </button>
           )}
-        </header>
+        </div>
+      </header>
 
-        {/* ── Loading ── */}
-        {loading && (
-          <div className="his-loading">
-            <span className="his-loading__spinner" aria-hidden="true" />
-            <p className="his-loading__text">Loading history…</p>
+      {/* ── Loading ── */}
+      {loading && (
+        <div className="his-loading" role="status">
+          <div className="his-spinner" aria-hidden="true" />
+          <p>Loading history…</p>
+        </div>
+      )}
+
+      {/* ── Empty state ── */}
+      {!loading && interviews.length === 0 && (
+        <div className="his-empty">
+          <div className="his-empty__icon" aria-hidden="true">
+            <BsClipboardData />
           </div>
-        )}
+          <h2 className="his-empty__heading">No interviews yet</h2>
+          <p className="his-empty__sub">
+            Your completed and in-progress interviews will all appear here.
+          </p>
+          <button className="his-new-btn" onClick={() => navigate('/setup')}>
+            <BsPlayCircleFill aria-hidden="true" />
+            Start Your First Interview
+          </button>
+        </div>
+      )}
 
-        {/* ── Empty state ── */}
-        {!loading && interviews.length === 0 && (
-          <div className="his-empty">
-            <span className="his-empty__icon" aria-hidden="true">
-              <BsClipboardData />
-            </span>
-            <h2 className="his-empty__heading">No interviews yet</h2>
-            <p className="his-empty__text">
-              Your completed and in-progress interviews will all appear here.
-            </p>
-            <button className="his-empty__cta" onClick={() => navigate('/setup')}>
-              <BsPlayCircleFill aria-hidden="true" />
-              Start Your First Interview
-            </button>
+      {/* ── Grid ── */}
+      {!loading && interviews.length > 0 && (
+        <>
+          <div className="his-grid">
+            {interviews.map((interview) => (
+              <InterviewCard
+                key={interview._id}
+                interview={interview}
+                onClick={() => handleCardClick(interview)}
+                onDelete={handleDelete}
+              />
+            ))}
           </div>
-        )}
 
-        {/* ── Grid + pagination ── */}
-        {!loading && interviews.length > 0 && (
-          <>
-            <div className="his-grid">
-              {interviews.map((interview) => (
-                <InterviewCard
-                  key={interview._id}
-                  interview={interview}
-                  onClick={() => handleCardClick(interview)}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </div>
+          {/* ── Pagination ── */}
+          {totalPages > 1 && (
+            <nav className="his-pagination" aria-label="Pagination">
+              <button
+                className="his-pg-arrow"
+                onClick={() => setPage((p) => p - 1)}
+                disabled={page === 1}
+                aria-label="Previous page"
+              >
+                <BsChevronLeft />
+              </button>
 
-            {totalPages > 1 && (
-              <nav className="his-pagination" aria-label="Pagination">
-                {/* Prev */}
-                <button
-                  className="his-page-btn his-page-btn--arrow"
-                  onClick={() => setPage((p) => p - 1)}
-                  disabled={page === 1}
-                  aria-label="Previous page"
-                >
-                  <BsChevronLeft />
-                </button>
+              {pageNumbers.map((n, idx) => {
+                const prev = pageNumbers[idx - 1];
+                const showEllipsis = prev && n - prev > 1;
+                return (
+                  <span key={n} className="his-pg-group">
+                    {showEllipsis && <span className="his-ellipsis">…</span>}
+                    <button
+                      className={`his-pg-num ${n === page ? 'his-pg-num--active' : ''}`}
+                      onClick={() => setPage(n)}
+                      aria-current={n === page ? 'page' : undefined}
+                    >
+                      {n}
+                    </button>
+                  </span>
+                );
+              })}
 
-                {/* Page numbers */}
-                {pageNumbers.map((n, idx) => {
-                  const prev = pageNumbers[idx - 1];
-                  const showEllipsis = prev && n - prev > 1;
-                  return (
-                    <span key={n} className="his-page-group">
-                      {showEllipsis && (
-                        <span className="his-ellipsis">…</span>
-                      )}
-                      <button
-                        className={`his-page-btn ${n === page ? 'his-page-btn--active' : ''}`}
-                        onClick={() => setPage(n)}
-                        aria-current={n === page ? 'page' : undefined}
-                      >
-                        {n}
-                      </button>
-                    </span>
-                  );
-                })}
-
-                {/* Next */}
-                <button
-                  className="his-page-btn his-page-btn--arrow"
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={page === totalPages}
-                  aria-label="Next page"
-                >
-                  <BsChevronRight />
-                </button>
-              </nav>
-            )}
-          </>
-        )}
-
-      </div>
+              <button
+                className="his-pg-arrow"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page === totalPages}
+                aria-label="Next page"
+              >
+                <BsChevronRight />
+              </button>
+            </nav>
+          )}
+        </>
+      )}
     </div>
   );
 }

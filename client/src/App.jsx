@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+/*   import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -61,6 +61,47 @@ function App() {
         />
 
         <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </div>
+  );
+}
+
+export default App; */
+
+import { Routes, Route, Navigate } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import Layout from './components/Layout/index.jsx';
+import ProtectedRoute from './components/ProtectedRoute';
+import HomePage from './pages/HomePage';
+import InterviewSetupPage from './pages/InterviewSetupPage';
+import InterviewPage from './pages/InterviewPage';
+import FeedbackPage from './pages/FeedbackPage';
+import HistoryPage from './pages/HistoryPage';
+
+/* Wrap every protected page with sidebar layout */
+const ProtectedLayout = ({ children }) => (
+  <ProtectedRoute>
+    <Layout>{children}</Layout>
+  </ProtectedRoute>
+);
+
+function App() {
+  return (
+    <div className="app-shell">
+      <Routes>
+
+        {/* Public */}
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* Protected — all get the sidebar */}
+        <Route path="/"          element={<ProtectedLayout><HomePage /></ProtectedLayout>}           />
+        <Route path="/setup"     element={<ProtectedLayout><InterviewSetupPage /></ProtectedLayout>} />
+        <Route path="/interview/:id" element={<ProtectedLayout><InterviewPage /></ProtectedLayout>}  />
+        <Route path="/feedback/:id"  element={<ProtectedLayout><FeedbackPage /></ProtectedLayout>}   />
+        <Route path="/history"   element={<ProtectedLayout><HistoryPage /></ProtectedLayout>}        />
+
+        <Route path="*" element={<Navigate to="/" />} />
+
       </Routes>
     </div>
   );

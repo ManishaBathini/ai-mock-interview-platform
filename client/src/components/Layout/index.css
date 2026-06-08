@@ -1,0 +1,22 @@
+/* ─────────────────────────────────────────
+   MockAI — Layout wrapper (Layout.css)
+───────────────────────────────────────── */
+
+.layout-root {
+  display: flex;
+  min-height: 100vh;
+  background: #eef2f7;
+}
+
+.layout-main {
+  margin-left: 230px;   /* matches --sb-width */
+  flex: 1;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .layout-root  { flex-direction: column; }
+  .layout-main  { margin-left: 0; }
+}
